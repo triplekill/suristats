@@ -8,23 +8,27 @@
 #include <stdlib.h>
 
 #include "ssDb.h"
+#include "ssParse.h"
 
 int main(int argc, char **argv){
-	void	*ssDb;
+	ssDb	*db;
 
 	if(argc != 3 ){
 		fprintf(stderr, "Usage: %s DATABASE SQL-STATEMENT\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	if ((ssDb = ssDbOpen(argv[1])) == NULL)
+	db = ssDbCreate(argv[1]);
+	ssDbClose(db);
+
+	if ((db = ssDbOpen(argv[1])) == NULL)
 	{
 		return EXIT_FAILURE;
 	}
 
-	ssDbCommand(ssDb, argv[2]);
+	ssDbCommand(db, argv[2]);
 
-	ssDbClose(ssDb);
+	ssDbClose(db);
 
 	return EXIT_SUCCESS;
 }

@@ -5,11 +5,15 @@
  *      Author: david
  */
 
-#include <sqlite3.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-//#include "ssDb.h"
+#include "ssDb.h"
+
+#define SSDB_INIT1 "CREATE TABLE IF NOT EXISTS counter (title text, note text, changed datetime)"
+#define SSDB_INIT2 "CREATE TABLE IF NOT EXISTS run (title text, note text, changed datetime)"
+#define NOTEZ_DB_LIST_QUERY "SELECT id, strftime(\"%s\", changed) AS changed, title FROM notez ORDER BY id DESC"
+
 
 static int callback(void *NotUsed, int argc, char **argv, char **azColName){
 	int i;
@@ -24,11 +28,42 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName){
 }
 
 /*
- * Create Suricata Stats (SS) DataBase
+ * Create Suricata Stats (SS) DataBase and log tables
  */
-void ssDbCreate(char *filename)
+ssDb *ssDbCreate(char *filename)
 {
+	char	*errMsg = 0;
+	int 	rc;
 
+	ssDb *db;
+
+
+	rc = sqlite3_open(filename, &db);
+
+	if(rc){
+		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+
+		return NULL;
+	}
+
+	rc = sqlite3_exec(db, SSDB_INIT1, callback, NULL, &errMsg);
+
+	if (rc != SQLITE_OK)
+	{
+		fprintf(stderr, "SQL Error: %s\n", errMsg);
+		sqlite3_free(errMsg);
+	}
+
+	rc = sqlite3_exec(db, SSDB_INIT2, callback, NULL, &errMsg);
+
+	if (rc != SQLITE_OK)
+	{
+		fprintf(stderr, "SQL Error: %s\n", errMsg);
+		sqlite3_free(errMsg);
+	}
+
+	return db;
 }
 
 /*
@@ -42,9 +77,9 @@ void ssDbDelete(void)
 /*
  * Open Suricata Stats (SS) DataBase
  */
-void* ssDbOpen(char *filename)
+ssDb *ssDbOpen(char *filename)
 {
-	sqlite3 *db;
+	ssDb *db;
 
 	int rc;
 
@@ -63,27 +98,23 @@ void* ssDbOpen(char *filename)
 /*
  * Suricata Stats (SS) command
  */
-void ssDbCommand(void *ssDb, char *command)
+void ssDbCommand(ssDb *db, char *command)
 {
-	sqlite3 *db = (sqlite3 *) ssDb;
-
-	char	*zErrMsg = 0;
+	char	*ErrMsg = 0;
 	int		rc;
 
-	rc = sqlite3_exec(db, command, callback, 0, &zErrMsg);
+	rc = sqlite3_exec(db, command, callback, 0, &ErrMsg);
 
-	if( rc!=SQLITE_OK ){
-		fprintf(stderr, "SQL error: %s\n", zErrMsg);
-		sqlite3_free(zErrMsg);
+	if(rc != SQLITE_OK){
+		fprintf(stderr, "SQL error: %s\n", ErrMsg);
+		sqlite3_free(ErrMsg);
 	}
 }
 
 /*
  *
  */
-void ssDbClose(void *ssDb)
+void ssDbClose(ssDb *db)
 {
-	sqlite3 *db = (sqlite3 *) ssDb;
-
 	sqlite3_close(db);
 }
