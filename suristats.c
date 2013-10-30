@@ -6,27 +6,59 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>		/* getopt() */
+
+#include "suristats.h"
 
 #include "ssDb.h"
 #include "ssParse.h"
 
+#define USAGE	"Usage: %s [ch] DATABASE SQL-STATEMENT\n"
+
+//extern	char	*optarg;
+extern	int		optind;
+
 int main(int argc, char **argv){
 	ssDb	*db;
 
-	if(argc != 3 ){
-		fprintf(stderr, "Usage: %s DATABASE SQL-STATEMENT\n", argv[0]);
+	int	createDb = FALSE;
+	int	opt;
+
+	while ((opt = getopt (argc, argv, "chf:")) != -1) {
+		switch (opt) {
+			case 'h':
+				fprintf(stdout, USAGE, argv[0]);
+				return EXIT_SUCCESS;
+				break;
+			case 'f':
+//				optarg;
+				break;
+			case 'c':
+				createDb = TRUE;
+				break;
+			default :
+				return EXIT_FAILURE;
+				break;
+		}
+	}
+
+	if(argc < 3 ){
+		fprintf(stderr, USAGE, argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	db = ssDbCreate(argv[1]);
-	ssDbClose(db);
+	if (createDb)
+	{
+		db = ssDbCreate(argv[optind]);
+		ssDbClose(db);
+	}
 
-	if ((db = ssDbOpen(argv[1])) == NULL)
+	if ((db = ssDbOpen(argv[optind])) == NULL)
 	{
 		return EXIT_FAILURE;
 	}
 
-	ssDbCommand(db, argv[2]);
+	ssDbCommand(db, argv[optind + 1]);
 
 	ssDbClose(db);
 
