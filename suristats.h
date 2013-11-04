@@ -8,7 +8,4 @@
 #ifndef SURISTATS_H_
 #define SURISTATS_H_
 
-#define	TRUE	1
-#define	FALSE	0
-
 #endif /* SURISTATS_H_ */

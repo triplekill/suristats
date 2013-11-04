@@ -7,17 +7,22 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>		/* strftime()	*/
 
 #include "ssDb.h"
 
-#define SSDB_INIT1 "CREATE TABLE IF NOT EXISTS counter (title text, note text, changed datetime)"
-#define SSDB_INIT2 "CREATE TABLE IF NOT EXISTS run (title text, note text, changed datetime)"
-#define NOTEZ_DB_LIST_QUERY "SELECT id, strftime(\"%s\", changed) AS changed, title FROM notez ORDER BY id DESC"
+#define TAILLE_BUFFER	255
+
+#define COUNTER_INT		"CREATE TABLE IF NOT EXISTS counter (cname char(%d), tm_name char(%d), value int, date datetime, days int, uptime datetime)"
+#define	COUNTER_INS		"INSERT INTO counter VALUES ('%s', '%s', %d, '%s', %d, '%s')"
+
+#define RUNTIME_INIT	"CREATE TABLE IF NOT EXISTS runtime (date datetime, days int, uptime datetime)"
+#define	RUNTIME_INS		"INSERT INTO runtime VALUES ('%s', %d, '%s')"
 
 static int callback(void *NotUsed, int argc, char **argv, char **azColName){
 	int i;
 
-	for(i=0; i<argc; i++){
+	for(i = 0; i < argc; i++){
 		fprintf(stdout, "%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
 	}
 
@@ -27,17 +32,36 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName){
 }
 
 /*
- * Create Suricata Stats (SS) DataBase and log tables
+ * Exécuter une commande SQL
+ */
+void ssDbCommand(ssDb *db, char *command)
+{
+	char	*errMsg = 0;
+	int		rc;
+
+	// Executer la commande SQLite command
+	rc = sqlite3_exec(db, command, callback, 0, &errMsg);
+
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "SQL error: %s\n", errMsg);
+		sqlite3_free(errMsg);
+	}
+}
+
+/*
+ * Creer la database
  */
 ssDb *ssDbCreate(char *filename)
 {
-	char	*errMsg = 0;
+	ssDb	*db;
+
+	char	sql[TAILLE_BUFFER];
 	int 	rc;
 
-	ssDb *db;
-
 	// Ouvrir le fichier SQLite
-	if ((rc = sqlite3_open(filename, &db))) {
+	rc = sqlite3_open(filename, &db);
+
+	if (rc) {
 		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 
@@ -45,22 +69,18 @@ ssDb *ssDbCreate(char *filename)
 	}
 
 	// Creer la table counter
-	if ((rc = sqlite3_exec(db, SSDB_INIT1, callback, NULL, &errMsg)) != SQLITE_OK) {
-		fprintf(stderr, "SQL Error: %s\n", errMsg);
-		sqlite3_free(errMsg);
-	}
+	sprintf(sql, COUNTER_INT, TAILLE_MOT, TAILLE_MOT);
+	ssDbCommand(db, sql);
 
 	// Creer la table run
-	if ((rc = sqlite3_exec(db, SSDB_INIT2, callback, NULL, &errMsg)) != SQLITE_OK) {
-		fprintf(stderr, "SQL Error: %s\n", errMsg);
-		sqlite3_free(errMsg);
-	}
+	sprintf(sql, RUNTIME_INIT);
+	ssDbCommand(db, sql);
 
 	return db;
 }
 
 /*
- * Delete Suricata Stats (SS) DataBase
+ * Effacer la dataBase
  */
 void ssDbDelete(void)
 {
@@ -68,16 +88,18 @@ void ssDbDelete(void)
 }
 
 /*
- * Open Suricata Stats (SS) DataBase
+ * Ouvrir la database
  */
 ssDb *ssDbOpen(char *filename)
 {
-	ssDb *db;
+	ssDb 	*db;
 
-	int rc;
+	int 	rc;
 
 	// Ouvrir la database SQLite
-	if ((rc = sqlite3_open(filename, &db))) {
+	rc = sqlite3_open(filename, &db);
+
+	if (rc) {
 		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 
@@ -88,22 +110,39 @@ ssDb *ssDbOpen(char *filename)
 }
 
 /*
- * Suricata Stats (SS) command
+ * Insérer un COUNTER dans la table counter de la DataBase
  */
-void ssDbCommand(ssDb *db, char *command)
+void ssDbInsererCounter(ssDb *db, ssDbRuntime *runtime, ssDbCounter *counter)
 {
-	char	*ErrMsg = 0;
-	int		rc;
+	char	date[TAILLE_BUFFER], sql[TAILLE_BUFFER], uptime[TAILLE_BUFFER];
 
-	// Executer la commande SQLite command
-	if ((rc = sqlite3_exec(db, command, callback, 0, &ErrMsg)) != SQLITE_OK) {
-		fprintf(stderr, "SQL error: %s\n", ErrMsg);
-		sqlite3_free(ErrMsg);
-	}
+	// Transformer la date et uptime en format datetime de SQL
+	strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", &(runtime->date));
+	sprintf(uptime, "%2.2d:%2.2d:%2.2d", runtime->hours, runtime->min, runtime->sec);
+
+	// Insere counterName dans la table counter de la datatbase db
+	sprintf(sql, COUNTER_INS, counter->cname, counter->tm_name, counter->value, date, runtime->days, uptime);
+	ssDbCommand(db, sql);
 }
 
 /*
- *
+ * Insérer un RUNTIME dans la table runtime de la DataBase
+ */
+void ssDbInsererRuntime(ssDb *db, ssDbRuntime *runtime)
+{
+	char	date[TAILLE_BUFFER], sql[TAILLE_BUFFER], uptime[TAILLE_BUFFER];
+
+	// Transformer la date et uptime en format datetime de SQL
+	strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", &(runtime->date));
+	sprintf(uptime, "%2.2d:%2.2d:%2.2d", runtime->hours, runtime->min, runtime->sec);
+
+	// Insere runtime dans la table runtime de la datatbase db
+	sprintf(sql, RUNTIME_INS, date, runtime->days, uptime);
+	ssDbCommand(db, sql);
+}
+
+/*
+ * Fermer la database
  */
 void ssDbClose(ssDb *db)
 {
