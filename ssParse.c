@@ -34,7 +34,7 @@ int ssParseFile(ssDb *db, char *name)
 	FILE *file;
 
 	char 	ligne[TAILLE_BUFFER];
-    int 	compteur = 0;
+    int 	cpt = 0;
     int		sec, min, hours, days;
 
 	// Initialiser runtime
@@ -50,7 +50,7 @@ int ssParseFile(ssDb *db, char *name)
 	// Parcourir le fichier ligne par ligne
 	while (fgets(ligne, sizeof(ligne), file) != NULL) {
 		// Incrémenter le compteur de ligne
-		compteur++;
+		cpt++;
 
 		if (strncmp(ligne, LIGNE_SEPARATION, strlen(LIGNE_SEPARATION))) {
 			if (strncmp(ligne, LIGNE_DATE, strlen(LIGNE_DATE))) {
@@ -97,5 +97,5 @@ int ssParseFile(ssDb *db, char *name)
 	// Fermer le fichier
 	fclose(file);
 
-	return compteur;
+	return cpt;
 }

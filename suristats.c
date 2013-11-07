@@ -91,9 +91,12 @@ int main(int argc, char **argv){
 	}
 
 	// Parser le fichier log de Suricata
-//	fprintf(stdout, "Fichier log : <%d> lignes", ssParseFile(db, logFile));
+//	fprintf(stdout, "Fichier %s : %d lignes lues\n", logFile, ssParseFile(db, logFile));
 
-	// Fermer la database
+	// Requete sur la base de donnees
+	ssDbRequete(db);
+
+	// Fermer la base de donnees
 	ssDbClose(db);
 
 	// Liberer les allocations de dbFile et logFile

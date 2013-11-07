@@ -36,5 +36,7 @@ extern ssDb* 	ssDbOpen(char *filename);
 extern void 	ssDbClose(ssDb *db);
 extern void		ssDbInsererCounter(ssDb *db, ssDbRuntime *runtime, ssDbCounter *counter);
 extern void		ssDbInsererRuntime(ssDb *db, ssDbRuntime *runtime);
+extern void		ssDbRequete(ssDb *db);
+
 
 #endif /* SSDB_H_ */
