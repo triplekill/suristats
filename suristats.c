@@ -17,7 +17,8 @@
 #include "ssDb.h"
 #include "ssParse.h"
 
-#define USAGE	"Usage: %s [ch] DATABASE SQL-STATEMENT\n"
+#define USAGE	"Usage: %s [-h] [-c database] [-f logfile]\n\t-c database\tCreer si elle n'existe pas la base donné SQL\n\t-f logfile\tUtilse logfile comme sortie de log Suricata"
+#define	TMP		"/tmp/suristat.db"
 
 extern	char	*optarg;
 
@@ -28,12 +29,6 @@ int main(int argc, char **argv){
 	int		opt;
 
 	ssDb	*db;
-
-	// Verifier la ligne de commande (nom programme, nom de la database, commande SQL)
-	if(argc < 3 ){
-		fprintf(stderr, USAGE, argv[0]);
-		return EXIT_FAILURE;
-	}
 
 	// Recuperer les options de la ligne de commande
 	while ((opt = getopt (argc, argv, "hc:f:")) != -1) {
@@ -52,10 +47,6 @@ int main(int argc, char **argv){
 			case 'c':
 				// option 'creer la database'
 				dbFile = strdup(optarg);
-
-				// Creer la database si vide
-				db = ssDbCreate(dbFile);
-				ssDbClose(db);
 				break;
 
 			default :
@@ -66,8 +57,12 @@ int main(int argc, char **argv){
 
 	// Si la database n'est pas fournie
 	if (dbFile == NULL) {
-		dbFile = strdup("/tmp/suristat.db");
+		dbFile = strdup(TMP);
 	}
+
+	// Creer la database si vide
+	db = ssDbCreate(dbFile);
+	ssDbClose(db);
 
 	// Verifier l etat du fichier database
 	if (stat(dbFile, &sb) == -1) {
@@ -85,19 +80,23 @@ int main(int argc, char **argv){
 	}
 
 	// Verification de l'option 'fichier log Suricata'
-	if (logFile == NULL)
-	{
+	if (logFile == NULL) {
 		return EXIT_FAILURE;
 	}
 
 	// Parser le fichier log de Suricata
-//	fprintf(stdout, "Fichier %s : %d lignes lues\n", logFile, ssParseFile(db, logFile));
+	fprintf(stdout, "Fichier %s : %d lignes lues\n", logFile, ssParseFile(db, logFile));
 
 	// Requete sur la base de donnees
 	ssDbRequete(db);
 
 	// Fermer la base de donnees
 	ssDbClose(db);
+
+	// Si la base de donnee n'est pas fournie, effacer le fichier base de donnee
+	if (!strcmp(dbFile, TMP)) {
+		ssDbDelete(dbFile);
+	}
 
 	// Liberer les allocations de dbFile et logFile
 	free(dbFile);
