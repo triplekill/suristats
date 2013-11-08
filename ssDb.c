@@ -42,11 +42,9 @@ static int callback(void *liste, int argc, char **argv, char **azColName)
 		strncpy(elt, argv[i], TAILLE_BUFFER * sizeof(char));
 		elt += TAILLE_BUFFER;
 	}
-/*
-	for(i = 0; i < argc; i++){
-		fprintf(stdout, "%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-	}
-*/
+
+	(void) azColName;
+
 	return EXIT_SUCCESS;
 }
 
